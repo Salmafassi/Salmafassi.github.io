@@ -1,0 +1,93 @@
+<?php // line 1 added to enable color highlight
+require_once("connexion1.php");
+require_once('utile.php');
+require_once('logout.php');
+if(isset($_POST['cancel'])){
+  header("location:index.php?cancel=");
+  exit;
+}
+  $fname=htmlentities($_POST['first_name']);
+$lname=htmlentities($_POST['last_name']);
+$headline=htmlentities($_POST['headline']);
+$msg=validatePos();
+$msg1=validatedu();
+if(is_string($msg)){
+ 
+  header("location:add.php?error=$msg");
+  exit;
+}
+if(is_string($msg1)){
+ 
+  header("location:add.php?error=$msg1");
+  exit;
+}
+$stmt = $connex->prepare('INSERT INTO Profile
+  (user_id, first_name, last_name, email, headline, summary)
+  VALUES ( :uid, :fn, :ln, :em, :he, :su)');
+
+$stmt->execute(array(
+  ':uid' => $_SESSION['user_id'],
+  ':fn' => $fname,
+  ':ln' => $lname ,
+  ':em' => $_POST['email'],
+  ':he' => $headline,
+  ':su' => $_POST['summary'])
+);
+$profile_id = $connex->lastInsertId();
+$rank = 1;
+for($i=1; $i<=9; $i++) {
+  if ( ! isset($_POST['year'.$i]) ) continue;
+  if ( ! isset($_POST['desc'.$i]) ) continue;
+
+  $year = $_POST['year'.$i];
+  $desc = $_POST['desc'.$i];
+  $stmt = $connex->prepare('INSERT INTO Position
+    (profile_id, rank, year, description)
+    VALUES ( :pid, :rank, :year, :desc)');
+
+  $stmt->execute(array(
+  ':pid' => $profile_id,
+  ':rank' => $rank,
+  ':year' => $year,
+  ':desc' => $desc)
+  );
+
+  $rank++;
+
+}
+$rank = 1;
+for($i=1; $i<=9; $i++) {
+ 
+  if ( ! isset($_POST['edu_school'.$i]) ) continue;
+  $school = $_POST['edu_school'.$i];
+  $requete="select * from institution where name='$school'";
+  $select=$connex->query($requete);
+  if($select->rowCount()==0){
+    $requete1="insert into institution(name) values('$school')";
+    $select1=$connex->query($requete1);
+  }
+ 
+
+
+}
+for($i=1; $i<=9; $i++) {
+  if ( ! isset($_POST['edu_school'.$i]) ) continue;
+  if ( ! isset($_POST['edu_year'.$i]) ) continue;
+  $year=$_POST['edu_year'.$i];
+  $school=$_POST['edu_school'.$i];
+  $requete="select * from institution where name='$school'";
+  $select=$connex->query($requete);
+  $id_inst=$select->fetch()['institution_id'];
+   $year=$_POST['edu_year'.$i];
+  $requete="insert into education(profile_id,institution_id,rank,year) values('$profile_id','$id_inst','$rank','$year') ";
+  $select=$connex->query($requete);
+ 
+
+  $rank++;
+
+}
+
+header("location:index.php");
+
+
+?>
